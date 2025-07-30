@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Панель мониторинга VPS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="main-container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-dark mb-3">
+                    <i class="fas fa-tachometer-alt"></i> Панель мониторинга VPS
+                </h2>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-item text-center">
+                            <h5 class="text-success" id="online-count">0</h5>
+                            <small class="text-muted">Онлайн серверов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item text-center">
+                            <h5 class="text-danger" id="offline-count">0</h5>
+                            <small class="text-muted">Офлайн серверов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item text-center">
+                            <h5 class="text-primary" id="avg-load">0.0</h5>
+                            <small class="text-muted">Средняя нагрузка</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item text-center">
+                            <h5 class="text-info" id="last-update">--:--</h5>
+                            <small class="text-muted">Последнее обновление</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="servers-container">
+            {% for server_id, server in servers.items() %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="server-card card h-100" data-server-id="{{ server_id }}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-server"></i> {{ server.name }}
+                        </h5>
+                        <span class="status-indicator">
+                            <i class="fas fa-circle status-offline"></i>
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="server-info">
+                            <p class="text-muted mb-2">
+                                <i class="fas fa-map-marker-alt"></i> {{ server.location }}
+                            </p>
+                            <p class="text-muted mb-3">
+                                <i class="fas fa-network-wired"></i> {{ server.host }}:{{ server.port }}
+                            </p>
+                        </div>
+
+                        <div class="server-stats" style="display: none;">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <div class="d-flex justify-content-between">
+                                            <small>CPU</small>
+                                            <small class="cpu-value">0%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-primary cpu-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <div class="d-flex justify-content-between">
+                                            <small>RAM</small>
+                                            <small class="memory-value">0%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-warning memory-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <div class="d-flex justify-content-between">
+                                            <small>Диск</small>
+                                            <small class="disk-value">0%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-info disk-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <div class="d-flex justify-content-between">
+                                            <small>Load</small>
+                                            <small class="load-value">0.0</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <div class="stat-item">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i>
+                                            <span class="uptime-value">Загрузка...</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="server-offline-msg" style="display: none;">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Сервер недоступен
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-sm btn-success btn-action" onclick="serverAction('{{ server_id }}', 'restart_vpn')">
+                                <i class="fas fa-sync"></i> VPN
+                            </button>
+                            <button class="btn btn-sm btn-warning btn-action" onclick="serverAction('{{ server_id }}', 'reboot')">
+                                <i class="fas fa-redo"></i> Reboot
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-action" onclick="serverAction('{{ server_id }}', 'shutdown')">
+                                <i class="fas fa-power-off"></i> Shutdown
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-info btn-action w-100 mt-2" onclick="showLogs('{{ server_id }}')">
+                            <i class="fas fa-file-alt"></i> Логи
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для логов -->
+<div class="modal fade" id="logsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt"></i> Логи сервера: <span id="logs-server-name"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="logs-content" style="max-height: 400px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+Загрузка логов...
+                </pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение действия</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirm-action">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentAction = null;
+let currentServerId = null;
+
+// Обновление данных каждые 30 секунд
+function updateServerData() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            updateDashboard(data);
+        })
+        .catch(error => {
+            console.error('Error fetching server data:', error);
+        });
+}
+
+function updateDashboard(data) {
+    let onlineCount = 0;
+    let offlineCount = 0;
+    let totalLoad = 0;
+    let loadCount = 0;
+
+    // Обновляем каждый сервер
+    for (const [serverId, status] of Object.entries(data.status)) {
+        const serverCard = document.querySelector(`[data-server-id="${serverId}"]`);
+        const statusIndicator = serverCard.querySelector('.status-indicator i');
+        const serverStats = serverCard.querySelector('.server-stats');
+        const offlineMsg = serverCard.querySelector('.server-offline-msg');
+
+        if (status) {
+            onlineCount++;
+            statusIndicator.className = 'fas fa-circle status-online';
+            serverStats.style.display = 'block';
+            offlineMsg.style.display = 'none';
+
+            // Обновляем статистику если есть
+            if (data.stats[serverId]) {
+                const stats = data.stats[serverId];
+
+                // CPU
+                const cpuValue = parseFloat(stats.cpu) || 0;
+                serverCard.querySelector('.cpu-value').textContent = cpuValue.toFixed(1) + '%';
+                serverCard.querySelector('.cpu-bar').style.width = cpuValue + '%';
+
+                // Memory
+                const memoryValue = parseFloat(stats.memory) || 0;
+                serverCard.querySelector('.memory-value').textContent = memoryValue.toFixed(1) + '%';
+                serverCard.querySelector('.memory-bar').style.width = memoryValue + '%';
+
+                // Disk
+                const diskValue = parseFloat(stats.disk) || 0;
+                serverCard.querySelector('.disk-value').textContent = diskValue + '%';
+                serverCard.querySelector('.disk-bar').style.width = diskValue + '%';
+
+                // Load
+                const loadValue = parseFloat(stats.load) || 0;
+                serverCard.querySelector('.load-value').textContent = loadValue.toFixed(2);
+                totalLoad += loadValue;
+                loadCount++;
+
+                // Uptime
+                serverCard.querySelector('.uptime-value').textContent = stats.uptime || 'N/A';
+            }
+        } else {
+            offlineCount++;
+            statusIndicator.className = 'fas fa-circle status-offline';
+            serverStats.style.display = 'none';
+            offlineMsg.style.display = 'block';
+        }
+    }
+
+    // Обновляем общую статистику
+    document.getElementById('online-count').textContent = onlineCount;
+    document.getElementById('offline-count').textContent = offlineCount;
+    document.getElementById('avg-load').textContent = loadCount > 0 ? (totalLoad / loadCount).toFixed(2) : '0.0';
+
+    // Обновляем время последнего обновления
+    const now = new Date();
+    document.getElementById('last-update').textContent =
+        now.getHours().toString().padStart(2, '0') + ':' +
+        now.getMinutes().toString().padStart(2, '0');
+}
+
+function serverAction(serverId, action) {
+    currentServerId = serverId;
+    currentAction = action;
+
+    const actionNames = {
+        'restart_vpn': 'перезапустить VPN',
+        'reboot': 'перезагрузить сервер',
+        'shutdown': 'выключить сервер',
+        'update_system': 'обновить систему'
+    };
+
+    const serverName = document.querySelector(`[data-server-id="${serverId}"] h5`).textContent;
+    document.getElementById('confirm-message').textContent =
+        `Вы уверены, что хотите ${actionNames[action]} на сервере "${serverName}"?`;
+
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+
+function executeAction() {
+    if (!currentServerId || !currentAction) return;
+
+    const button = document.getElementById('confirm-action');
+    const originalText = button.textContent;
+    button.innerHTML = '<span class="loading-spinner"></span> Выполняется...';
+    button.disabled = true;
+
+    fetch(`/api/server/${currentServerId}/action/${currentAction}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Команда выполнена успешно', 'success');
+        } else {
+            showNotification('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'danger');
+        }
+    })
+    .catch(error => {
+        showNotification('Ошибка соединения: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        currentServerId = null;
+        currentAction = null;
+
+        // Обновляем данные через 2 секунды
+        setTimeout(updateServerData, 2000);
+    });
+}
+
+function showLogs(serverId) {
+    const serverName = document.querySelector(`[data-server-id="${serverId}"] h5`).textContent;
+    document.getElementById('logs-server-name').textContent = serverName;
+    document.getElementById('logs-content').textContent = 'Загрузка логов...';
+
+    const modal = new bootstrap.Modal(document.getElementById('logsModal'));
+    modal.show();
+
+    fetch(`/api/server/${serverId}/logs`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.logs) {
+                document.getElementById('logs-content').textContent = data.logs;
+            } else {
+                document.getElementById('logs-content').textContent = 'Ошибка загрузки логов: ' + (data.error || 'Неизвестная ошибка');
+            }
+        })
+        .catch(error => {
+            document.getElementById('logs-content').textContent = 'Ошибка соединения: ' + error.message;
+        });
+}
+
+function showNotification(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show position-fixed"
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+
+    // Автоматически убираем уведомление через 5 секунд
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        if (alerts.length > 0) {
+            alerts[alerts.length - 1].remove();
+        }
+    }, 5000);
+}
+
+// Обработчик для кнопки подтверждения
+document.getElementById('confirm-action').addEventListener('click', executeAction);
+
+// Запускаем обновление данных при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    updateServerData();
+    setInterval(updateServerData, 30000); // Обновляем каждые 30 секунд
+});
+</script>
+{% endblock %}
