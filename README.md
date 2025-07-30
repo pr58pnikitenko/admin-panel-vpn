@@ -181,9 +181,6 @@ server {
     add_header X-XSS-Protection "1; mode=block";
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
-    limit_req_zone $binary_remote_addr zone=api:10m rate=30r/m;
-
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
@@ -193,7 +190,6 @@ server {
     }
 
     location /api/ {
-        limit_req zone=api burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -202,7 +198,6 @@ server {
     }
 
     location /login {
-        limit_req zone=login burst=3 nodelay;
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
